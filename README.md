@@ -9,13 +9,12 @@ License
 MIT-license. I built this mainly to learn libvips and lua. Hopefully it benefits others.
 
 
-
 How to use it?
 --------------
 
 The easiest way to get started is to open the docker-compose.yml and edit
 IMAGING_ALLOWED_ORIGINS to space separated list of domains where you want
-to load images from. After that the usual
+to load images from. After that the usual:
 
 ```
 docker-compose build
@@ -25,6 +24,19 @@ docker-compose run
 The default configuration listens to 8080 and 8081 ports. The former has a 
 cache configured in the nginx conf and the latter is direct access to the 
 image processing engine.
+
+nginx.conf can be modified to suit your needs (change urls, cache sizes etc).
+
+The following environment variables can be used to tune defaults:
+
+
+        max_width       = getenv_number('IMAGING_MAX_WIDTH',       2048),
+        max_height      = getenv_number('IMAGING_MAX_HEIGHT',      2048),
+        max_operations  = getenv_number('IMAGING_MAX_OPERATIONS',  10),
+        default_quality = getenv_number('IMAGING_DEFAULT_QUALITY', 90),
+        default_strip   = getenv_boolean('IMAGING_DEFAULT_STRIP',  true),
+
+
 
 
 URLs
@@ -90,7 +102,7 @@ y (integer) - radius y (optional, cryptic)
 
 ```
 t (string) - what format to use: png, jpg, webp and gif should work. tiff is a hit and miss.
-q (integer) - output quality (between 1 and 100)
+q (integer) - output quality (between 1 and 100) for jpeg images
 s (boolean) - strip output
 ```
 

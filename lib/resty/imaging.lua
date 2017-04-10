@@ -51,6 +51,11 @@ local function getenv_number(var_name, default)
     return v and tonumber(v) or default
 end
 
+local function getenv_string(var_name, default)
+    local v = os.getenv(var_name)
+    return v and v or default
+end
+
 local function getenv_boolean(var_name, default)
     local v = os.getenv(var_name)
     if v then
@@ -78,9 +83,17 @@ function _M.init(config)
         max_operations  = getenv_number('IMAGING_MAX_OPERATIONS',  10),
         default_quality = getenv_number('IMAGING_DEFAULT_QUALITY', 90),
         default_strip   = getenv_boolean('IMAGING_DEFAULT_STRIP',  true),
-        default_format  = "png",
+        default_format  = getenv_string('IMAGING_DEFAULT_FORMAT',  "png"),
         max_concurrency = 24,
     }})
+
+    log_info("IMAGING_MAX_WIDTH=",       config.max_width)
+    log_info("IMAGING_MAX_HEIGHT=",      config.max_height)
+    log_info("IMAGING_MAX_OPERATIONS=",  config.max_operations)
+    log_info("IMAGING_DEFAULT_QUALITY=", config.default_quality)
+    log_info("IMAGING_DEFAULT_STRIP=",   config.default_strip)
+    log_info("IMAGING_DEFAULT_FORMAT=",  config.default_format)
+
 
     -- Store config
     _M.config = config

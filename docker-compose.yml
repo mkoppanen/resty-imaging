@@ -10,3 +10,4 @@ services:
 
     environment:
       - IMAGING_ALLOWED_ORIGINS=example.com
+      - IMAGING_DEFAULT_FORMAT=jpg
