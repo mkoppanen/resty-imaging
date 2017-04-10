@@ -1,7 +1,9 @@
 resty-imaging
 =============
 
-Micro-service approach to resizing images. Built with openresty, lua and C++. 
+Micro-service approach to resizing, cropping, rounding and serving images. Built with openresty, lua and C++.
+
+
 
 License
 -------
