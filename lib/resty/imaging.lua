@@ -9,13 +9,12 @@ local to_number = tonumber
 local ngx_now = ngx.now
 local ngx_update_time = ngx.update_time
 local get_time = os.clock
+local table_concat = table.concat
 
 local vips   = require "resty.imaging_vips"
 local http   = require "resty.imaging_http"
 local stats  = require "resty.imaging_stats"
 local params = require "resty.imaging_params"
-
-local cjson  = require "cjson"
 local pretty = require "resty.prettycjson"
 local neturl = require "net.url"
 
@@ -37,7 +36,7 @@ local function getenv_table(var_name, default)
     local val = os.getenv(var_name)
     if val then
         local retval = {}
-        for entry in string.gmatch(val, '([^ ]+)') do
+        for entry in string.gmatch(val, "%S+") do
             retval[entry] = true
         end
         return retval
@@ -87,12 +86,12 @@ function _M.init(config)
         max_concurrency = 24,
     }})
 
-    log_info("IMAGING_MAX_WIDTH=",       config.max_width)
-    log_info("IMAGING_MAX_HEIGHT=",      config.max_height)
-    log_info("IMAGING_MAX_OPERATIONS=",  config.max_operations)
-    log_info("IMAGING_DEFAULT_QUALITY=", config.default_quality)
-    log_info("IMAGING_DEFAULT_STRIP=",   config.default_strip)
-    log_info("IMAGING_DEFAULT_FORMAT=",  config.default_format)
+    -- log_info("IMAGING_MAX_WIDTH=",       config.max_width)
+    -- log_info("IMAGING_MAX_HEIGHT=",      config.max_height)
+    -- log_info("IMAGING_MAX_OPERATIONS=",  config.max_operations)
+    -- log_info("IMAGING_DEFAULT_QUALITY=", config.default_quality)
+    -- log_info("IMAGING_DEFAULT_STRIP=",   config.default_strip)
+    -- log_info("IMAGING_DEFAULT_FORMAT=",  config.default_format)
 
 
     -- Store config

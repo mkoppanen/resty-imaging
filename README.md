@@ -29,15 +29,15 @@ nginx.conf can be modified to suit your needs (change urls, cache sizes etc).
 
 The following environment variables can be used to tune defaults:
 
-
-        max_width       = getenv_number('IMAGING_MAX_WIDTH',       2048),
-        max_height      = getenv_number('IMAGING_MAX_HEIGHT',      2048),
-        max_operations  = getenv_number('IMAGING_MAX_OPERATIONS',  10),
-        default_quality = getenv_number('IMAGING_DEFAULT_QUALITY', 90),
-        default_strip   = getenv_boolean('IMAGING_DEFAULT_STRIP',  true),
-
-
-
+```
+IMAGING_ALLOWED_ORIGINS - Space separated list of allowed upstream domains
+IMAGING_MAX_WIDTH       - Maximum width of output image
+IMAGING_MAX_HEIGHT      - Maximum height of output image
+IMAGING_MAX_OPERATIONS  - Maximum amount of operations in one call
+IMAGING_DEFAULT_QUALITY - Default quality of JPEG output images
+IMAGING_DEFAULT_STRIP   - Whether to strip output images
+IMAGING_DEFAULT_FORMAT  - Default output format if none specified
+```
 
 URLs
 ----
