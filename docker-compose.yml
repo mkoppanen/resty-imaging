@@ -1,0 +1,12 @@
+version: '2'
+services:
+  ngx:
+    container_name: imaging
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+
+    environment:
+      - IMAGING_ALLOWED_ORIGINS=example.com

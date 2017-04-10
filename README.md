@@ -1,0 +1,112 @@
+resty-imaging
+=============
+
+Micro-service approach to resizing images. Built with openresty, lua and C++. 
+
+
+How to use it?
+--------------
+
+The easiest way to get started is to open the docker-compose.yml and edit
+IMAGING_ALLOWED_ORIGINS to space separated list of domains where you want
+to load images from. After that the usual
+
+```
+docker-compose build
+docker-compose run
+```
+
+The default configuration listens to 8080 and 8081 ports. The former has a 
+cache configured in the nginx conf and the latter is direct access to the 
+image processing engine.
+
+
+URLs
+----
+
+The urls in resty-imaging work in the following way:
+
+```
+http://localhost:8080/<operation name>/<operation params>/<operation name>/<operation params>/.../http://another.example.com/original.jpg
+```
+
+The three dots above mean that you can keep on putting operations and params as needed.
+They are actually not required or allowed in the url. Imagine, I had to add this note
+separately because a friend of mine sent a message saying "Hey, it looks good but I am getting
+an error with the dots".
+
+Currently resty-imaging recognises the following operation names:
+
+* resize, make images smaller or larger
+
+Allowed params:
+
+```
+w (integer) - width 
+h (integer) - height
+m (string)  - mode. Allowed modes are: fit, fill and crop
+```
+
+* crop, chop a piece of the image
+
+```
+w (integer) - width
+h (integer) - height
+g (string)  - gravity, i.e. which part of the image to crop.
+
+Here are the constants for gravity values:
+
+n      = GravityNorth
+ne     = GravityNorthEast
+e      = GravityEast
+se     = GravitySouthEast
+s      = GravitySouth
+sw     = GravitySouthWest
+w      = GravityWest
+nw     = GravityNorthWest
+center = GravityCenter
+smart  = GravitySmart
+```
+
+The smart crop works along the lines of seam carving (try to crop areas that are less relevant).
+
+
+* round, make circle images. Think avatars
+
+```
+p (integer) - amount as percentage to round the image
+x (integer) - radius x (optional, cryptic)
+y (integer) - radius y (optional, cryptic)
+
+```
+
+* format, switch image formats
+
+```
+t (string) - what format to use: png, jpg, webp and gif should work. tiff is a hit and miss.
+```
+
+Some examples
+-------------
+
+```
+http://localhost:8080/resize/w=500,h=500,m=crop/http://another.example.com/original.jpg
+```
+
+```
+http://localhost:8080/resize/w=500,h=500,m=fit/crop/w=200,h=200,g=c/format/t=png/http://another.example.com/original.jpg
+```
+
+Credits
+-------
+
+Thanks to https://github.com/lovell/sharp for having open source code based on libvips available,
+some of the routines in the C++ library are based on the code in this library as libvips wasn't
+the most accessible at first go.
+
+
+
+
+
+
+

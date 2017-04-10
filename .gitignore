@@ -1,0 +1,5 @@
+.DS_Store
+test/t_*
+*.o
+*.d
+*.so
