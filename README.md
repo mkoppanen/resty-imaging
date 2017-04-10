@@ -3,6 +3,12 @@ resty-imaging
 
 Micro-service approach to resizing images. Built with openresty, lua and C++. 
 
+License
+-------
+
+MIT-license. I built this mainly to learn libvips and lua. Hopefully it benefits others.
+
+
 
 How to use it?
 --------------
