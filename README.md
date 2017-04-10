@@ -80,10 +80,12 @@ y (integer) - radius y (optional, cryptic)
 
 ```
 
-* format, switch image formats
+* format, switch image formats. Format counts only once so specifying it multiple times between operations is pointless.
 
 ```
 t (string) - what format to use: png, jpg, webp and gif should work. tiff is a hit and miss.
+q (integer) - output quality (between 1 and 100)
+s (boolean) - strip output
 ```
 
 Some examples
@@ -103,6 +105,8 @@ Credits
 Thanks to https://github.com/lovell/sharp for having open source code based on libvips available,
 some of the routines in the C++ library are based on the code in this library as libvips wasn't
 the most accessible at first go.
+
+Other parts are based on libvips manual and random code samples.
 
 
 
