@@ -22,7 +22,6 @@ include $(SRCS:.cc=.d)
 
 install: all
 	cp *.so /usr/local/lib
-	ldconfig
 
 .PHONY: clean
 clean:

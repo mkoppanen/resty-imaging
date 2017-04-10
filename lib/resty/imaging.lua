@@ -44,7 +44,6 @@ local function getenv_table(var_name, default)
     return default
 end
 
-
 local function getenv_number(var_name, default)
     local v = os.getenv(var_name)
     return v and tonumber(v) or default
@@ -75,24 +74,16 @@ function _M.init(config)
     end
 
     setmetatable(config, {__index={
-        shm_name        = "imaging",
-        allowed_origins = getenv_table('IMAGING_ALLOWED_ORIGINS',  {}),
-        max_width       = getenv_number('IMAGING_MAX_WIDTH',       2048),
-        max_height      = getenv_number('IMAGING_MAX_HEIGHT',      2048),
-        max_operations  = getenv_number('IMAGING_MAX_OPERATIONS',  10),
-        default_quality = getenv_number('IMAGING_DEFAULT_QUALITY', 90),
-        default_strip   = getenv_boolean('IMAGING_DEFAULT_STRIP',  true),
-        default_format  = getenv_string('IMAGING_DEFAULT_FORMAT',  "png"),
-        max_concurrency = 24,
+        shm_name         = "imaging",
+        allowed_origins  = getenv_table('IMAGING_ALLOWED_ORIGINS',  {}),
+        max_width        = getenv_number('IMAGING_MAX_WIDTH',       2048),
+        max_height       = getenv_number('IMAGING_MAX_HEIGHT',      2048),
+        max_operations   = getenv_number('IMAGING_MAX_OPERATIONS',  10),
+        default_quality  = getenv_number('IMAGING_DEFAULT_QUALITY', 90),
+        default_strip    = getenv_boolean('IMAGING_DEFAULT_STRIP',  true),
+        default_format   = getenv_string('IMAGING_DEFAULT_FORMAT',  "png"),
+        max_concurrency  = 24,
     }})
-
-    -- log_info("IMAGING_MAX_WIDTH=",       config.max_width)
-    -- log_info("IMAGING_MAX_HEIGHT=",      config.max_height)
-    -- log_info("IMAGING_MAX_OPERATIONS=",  config.max_operations)
-    -- log_info("IMAGING_DEFAULT_QUALITY=", config.default_quality)
-    -- log_info("IMAGING_DEFAULT_STRIP=",   config.default_strip)
-    -- log_info("IMAGING_DEFAULT_FORMAT=",  config.default_format)
-
 
     -- Store config
     _M.config = config
@@ -103,7 +94,7 @@ function _M.init(config)
         max_operations  = config.max_operations,
         default_format  = config.default_format,
         default_quality = config.default_quality,
-        default_strip   = config.default_strip
+        default_strip   = config.default_strip,
     }
 
     vips.init{
