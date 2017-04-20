@@ -8,6 +8,16 @@ services:
       - "8080:8080"
       - "8081:8081"
 
+    volumes:
+      - "./lib/resty/imaging.lua:/usr/local/openresty/site/lualib/resty/imaging.lua"
+      - "./lib/resty/imaging_http.lua:/usr/local/openresty/site/lualib/resty/imaging_http.lua"
+      - "./lib/resty/imaging_params.lua:/usr/local/openresty/site/lualib/resty/imaging_params.lua"
+      - "./lib/resty/imaging_stats.lua:/usr/local/openresty/site/lualib/resty/imaging_stats.lua"
+      - "./lib/resty/imaging_util.lua:/usr/local/openresty/site/lualib/resty/imaging_util.lua"
+      - "./lib/resty/imaging_vips.lua:/usr/local/openresty/site/lualib/resty/imaging_vips.lua"
+      - "./test/test.ops:/tmp/test.ops"
+
     environment:
-      - IMAGING_ALLOWED_ORIGINS=example.com another.example.com
+      - IMAGING_ALLOWED_ORIGINS=example.com
       - IMAGING_DEFAULT_FORMAT=jpg
+      - IMAGING_NAMED_OPERATIONS_FILE=/tmp/test.ops

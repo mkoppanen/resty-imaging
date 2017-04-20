@@ -7,17 +7,17 @@ COPY ./entrypoint.sh /entrypoint.sh
 COPY ./helper-lib    /tmp/helper-lib
 
 RUN apk add --no-cache --virtual build-deps \
-        gcc g++ make libc-dev automake libtool tar gettext git autoconf gtk-doc build-base curl \
-        glib-dev libpng-dev libwebp-dev libexif-dev libxml2-dev libjpeg-turbo-dev gobject-introspection-dev tiff-dev giflib-dev librsvg-dev \
+        gcc g++ make libc-dev libtool tar gettext git gtk-doc build-base curl \
+        glib-dev libpng-dev libwebp-dev libexif-dev libxml2-dev libjpeg-turbo-dev tiff-dev giflib-dev librsvg-dev \
     && \
     apk add --no-cache \
-        glib libpng libwebp libexif libxml2 libjpeg-turbo gobject-introspection tiff giflib librsvg ca-certificates libstdc++ libc6-compat \
+        glib libpng libwebp libexif libxml2 libjpeg-turbo tiff giflib librsvg ca-certificates libstdc++ libc6-compat \
     && \
-    git clone https://github.com/jcupitt/libvips.git \
+    curl -L https://github.com/jcupitt/libvips/releases/download/v8.5.3/vips-8.5.3.tar.gz | tar xz \
     && \
-    cd libvips \
+    cd vips-8.5.3 \
     && \
-    CFLAGS="-O3 -g" ./autogen.sh --disable-python --without-gsf \
+    CFLAGS="-O3 -g" ./configure --disable-python --without-gsf \
     && \
     make -j8 \
     && \
@@ -37,7 +37,7 @@ RUN apk add --no-cache --virtual build-deps \
     && \
     curl https://raw.githubusercontent.com/golgote/neturl/master/lib/net/url.lua -o /usr/local/openresty/site/lualib/net/url.lua \
     && \
-    rm -rf /tmp/libvips \
+    rm -rf /tmp/vips-8.5.3 \
     && \
     cd /tmp/helper-lib \
     && \

@@ -1,5 +1,7 @@
 
 local ffi = require "ffi"
+local util = require "resty.imaging_util"
+
 local table_unpack = table.unpack
 local string_len = string.len
 
@@ -45,6 +47,8 @@ bool Imaging_resize(Imaging *img, int width, int height, ResizeMode);
 bool Imaging_crop(Imaging *img, int width, int height, Gravity);
 
 bool Imaging_round(Imaging *img, int x, int y);
+
+bool Imaging_blur(Imaging *img, double sigma);
 
 unsigned char *Imaging_to_buffer(Imaging *img, const char *format, int quality, bool strip, size_t *len);
 
@@ -104,6 +108,7 @@ local mt = {
     resize = libimaging.Imaging_resize,
     crop   = libimaging.Imaging_crop,
     round  = libimaging.Imaging_round,
+    blur   = libimaging.Imaging_blur,
 
     to_buffer = function (o, format, quality, strip) 
 
@@ -214,6 +219,16 @@ transform.round = function (image, params)
     end
 
     return image:round(x, y)
+end
+
+transform.blur = function (image, params)
+
+    setmetatable(params, {__index={
+        s = 0.0,
+    }})
+
+    local s = params.s
+    return image:blur(s)
 end
 
 function _M.operate(src_image, manifest)

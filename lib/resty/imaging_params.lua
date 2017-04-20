@@ -1,8 +1,12 @@
 
+local util = require "resty.imaging_util"
+
 local table_insert  = table.insert
 local string_gmatch = string.gmatch
 local string_match  = string.match
 local to_number     = tonumber
+
+
 
 local supported_formats = {
     png  = true,
@@ -32,7 +36,9 @@ local supported_gravity = {
     smart  = true,
 }
 
-local _M = {}
+local _M = {
+    named_ops = {}
+}
 local ops = {}
 
 
@@ -41,6 +47,11 @@ local function validate_always_valid()
 end
 
 local function to_boolean(str)
+
+    if not str then
+        return false
+    end
+
     if str == "1" or str == "true" or str == "yes" then
         return true
     else
@@ -49,27 +60,31 @@ local function to_boolean(str)
 end
 
 local function validate_width(width)
-    return width < _M.opts.max_width and width > 0
+    return width and width < _M.opts.max_width and width > 0
 end
 
 local function validate_height(height)
-    return height < _M.opts.max_height and height > 0
+    return height and height < _M.opts.max_height and height > 0
+end
+
+local function validate_sigma(sigma)
+    return sigma and sigma >= 0.0
 end
 
 local function validate_quality(quality)
-    return quality >= 1 and quality <= 100
+    return quality and quality >= 1 and quality <= 100
 end
 
 local function validate_format(str)
-    return supported_formats[str] ~= nil
+    return str and supported_formats[str] ~= nil
 end
 
 local function validate_resize_mode(str)
-    return supported_modes[str] ~= nil
+    return str and supported_modes[str] ~= nil
 end
 
 local function validate_gravity(str)
-    return supported_gravity[str] ~= nil
+    return str and supported_gravity[str] ~= nil
 end
 
 local function make_boolean_arg()
@@ -99,16 +114,31 @@ function _M.init(opts)
     assert (opts.default_quality)
     assert (opts.default_strip)
 
+    _M.opts = opts
+
+
     ops = {
         crop = {
             params = {
                 w  = make_number_arg(validate_width),
                 h  = make_number_arg(validate_height),
-                g  = {},  -- gravity
+                g  = make_string_arg(validate_gravity),  -- gravity
             },
             validate_fn = function(p)
                 if not p.w and not p.h then
                     return nil, 'missing w= and h= for crop'
+                end
+                return true
+            end
+        },
+
+        blur = {
+            params = {
+                s  = make_number_arg(validate_sigma),
+            },
+            validate_fn = function(p)
+                if not p.s then
+                    return nil, 'missing both s= (sigma) for blur'
                 end
                 return true
             end
@@ -144,6 +174,15 @@ function _M.init(opts)
             end
         },
 
+        named = {
+            params = {
+                n = make_string_arg(validate_name)
+            },
+            validate_fn = function(p)
+                return p.n and _M.named_ops[p.n] ~= nil
+            end
+        },
+
         format = {
             params = {
                 t = make_string_arg(validate_format),
@@ -159,7 +198,36 @@ function _M.init(opts)
             end
         }
     }
-    _M.opts = opts
+    
+    if opts.named_operations_file then
+        local lines, err = util.file_get_lines(opts.named_operations_file)
+
+        if not lines then
+            return nil, err
+        end
+
+        for n, line in pairs(lines) do
+
+            local name, operation = line:match('(.+)%s?:%s?(.+)')
+
+            if not name or not operation then
+                return nil, "Failed to parse line (" .. n .."): " .. err
+            else
+
+                local parsed, err = _M.parse(operation)
+
+                if not parsed then
+                    return nil, "Failed to parse named operation: " .. err
+                else
+                    _M.named_ops[name] = parsed
+                end
+            end
+        end
+    end
+
+    return true
+
+
 end
 
 
@@ -193,10 +261,7 @@ local function ordered_table()
     return setmetatable(key2val, selfmeta)
 end
 
-
 function _M.parse(str)
-
-    local config = _M.opts
 
     local parsed = ordered_table()
     local pos = 0
@@ -238,6 +303,11 @@ function _M.parse(str)
                 end
             end
 
+            -- Return named operation if exists
+            if name == "named" then
+                return _M.named_ops[fn_params["n"]];
+            end
+
             table_insert(parsed, {
                 name   = name,
                 params = fn_params
@@ -250,7 +320,7 @@ function _M.parse(str)
     end
 
     if #parsed == 0 then
-        return nil, 'did not found valid operations'
+        return nil, 'did not find valid operations'
     end
 
     if #parsed > _M.opts.max_operations then
@@ -264,7 +334,7 @@ function _M.parse(str)
         })
     end
 
-    return parsed
+    return parsed, nil
 end
 
 return _M

@@ -39,7 +39,18 @@ IMAGING_MAX_OPERATIONS  - Maximum amount of operations in one call
 IMAGING_DEFAULT_QUALITY - Default quality of JPEG output images
 IMAGING_DEFAULT_STRIP   - Whether to strip output images
 IMAGING_DEFAULT_FORMAT  - Default output format if none specified
+IMAGING_MAX_CONCURRENCY - The maximum concurrency of libvips
+IMAGING_NAMED_OPERATIONS_FILE - Path to a file that contains list of predefined operations
 ```
+
+The format for IMAGING_NAMED_OPERATIONS_FILE is the following:
+
+```
+thumbnail: resize/w=500,h=500,m=fit/crop/w=200,h=200,g=sw/format/t=webp
+avatar: resize/w=100,h=100,m=crop/round/p=100/format/t=jpg
+```
+
+
 
 URLs
 ----
@@ -108,6 +119,18 @@ q (integer) - output quality (between 1 and 100) for jpeg images
 s (boolean) - strip output
 ```
 
+* named, use a predefined operation from IMAGING_NAMED_OPERATIONS_FILE
+
+```
+n (string) - the name of the operation
+```
+
+* blur, gaussian blur operation
+
+```
+s (double) - the sigma value for gaussian blur
+```
+
 Some examples
 -------------
 
@@ -116,7 +139,7 @@ http://localhost:8080/resize/w=500,h=500,m=crop/http://another.example.com/origi
 ```
 
 ```
-http://localhost:8080/resize/w=500,h=500,m=fit/crop/w=200,h=200,g=c/format/t=png/http://another.example.com/original.jpg
+http://localhost:8080/resize/w=500,h=500,m=fit/crop/w=200,h=200,g=center/format/t=png/http://another.example.com/original.jpg
 ```
 
 Credits

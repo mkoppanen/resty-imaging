@@ -25,6 +25,15 @@ local KEY_HTTP_SERVER_ERROR = 'upstream_http_server_error'
 
 local NUM_AVG_SAMPLES = 1000.0
 
+function _M.init(config)
+
+    if not config.shm_name then
+        return
+    end
+
+    _M.dict = shared[config.shm_name]
+end
+
 local function upstream_stats_key(stat_name)
     return 'stat:' .. stat_name
 end
@@ -89,50 +98,48 @@ local function log_values(dict, values)
     end
 end
 
-function _M.log_fetch_time(shm_name, val)
+function _M.log_fetch_time(val)
 
-    local dict = shared[shm_name]
+    local dict = _M.dict
 
     if not dict then
         return
     end
 
     log_average(dict, KEY_FETCH_TIME, val)
-
 end
 
-function _M.log_operating_time(shm_name, val)
+function _M.log_operating_time(val)
 
-    local dict = shared[shm_name]
+    local dict = _M.dict
 
     if not dict then
         return
     end
 
     log_average(dict, KEY_PROCESSING_TIME, val)
-
 end
 
-function _M.log_upstream_response(shm_name, values)
-
-    local dict = shared[shm_name]
+function _M.log_upstream_response(values)
+    local dict = _M.dict
 
     if not dict then
         return
     end
 
+
     log_values(dict, values)
 end
 
-function _M.get_stats(shm_name)
+function _M.get_stats()
 
-    local dict = shared[shm_name]
+    local dict = _M.dict
 
     if not dict then
         return {}
     end
 
-    local s = new_tab(0, 9)
+    local s = new_tab(0, 11)
 
     s[KEY_RESPONSE_TIME]   = get_stat(dict, KEY_RESPONSE_TIME)
     s[KEY_RESPONSE_LENGTH] = get_stat(dict, KEY_RESPONSE_LENGTH)

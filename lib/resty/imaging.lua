@@ -1,34 +1,24 @@
 
-local log = ngx.log
-local ERR = ngx.ERR
-local INFO = ngx.INFO
-local WARN = ngx.WARN
-local ngx_ctx = ngx.ctx
-local shared = ngx.shared
-local to_number = tonumber
-local ngx_now = ngx.now
-local ngx_update_time = ngx.update_time
-local get_time = os.clock
-local table_concat = table.concat
-
 local vips   = require "resty.imaging_vips"
 local http   = require "resty.imaging_http"
 local stats  = require "resty.imaging_stats"
 local params = require "resty.imaging_params"
 local pretty = require "resty.prettycjson"
 local neturl = require "net.url"
+local util   = require "resty.imaging_util"
 
-local function log_info(...)
-    log(INFO, "imaging: ", ...)
-end
+local ngx_ctx = ngx.ctx
+local shared = ngx.shared
+local to_number = tonumber
+local ngx_now = ngx.now
+local ngx_var = ngx.var
+local ngx_update_time = ngx.update_time
+local get_time = os.clock
+local table_concat = table.concat
 
-local function log_warn(...)
-    log(WARN, "imaging: ", ...)
-end
-
-local function log_error(...)
-    log(ERR, "imaging: ", ...)
-end
+local log_error = util.log_error
+local log_warn  = util.log_warn
+local log_info  = util.log_info
 
 local _M = {}
 
@@ -74,35 +64,29 @@ function _M.init(config)
     end
 
     setmetatable(config, {__index={
-        shm_name         = "imaging",
-        allowed_origins  = getenv_table('IMAGING_ALLOWED_ORIGINS',  {}),
-        max_width        = getenv_number('IMAGING_MAX_WIDTH',       2048),
-        max_height       = getenv_number('IMAGING_MAX_HEIGHT',      2048),
-        max_operations   = getenv_number('IMAGING_MAX_OPERATIONS',  10),
-        default_quality  = getenv_number('IMAGING_DEFAULT_QUALITY', 90),
-        default_strip    = getenv_boolean('IMAGING_DEFAULT_STRIP',  true),
-        default_format   = getenv_string('IMAGING_DEFAULT_FORMAT',  "png"),
-        max_concurrency  = 24,
+        shm_name              = "imaging",
+        allowed_origins       = getenv_table('IMAGING_ALLOWED_ORIGINS',  {}),
+        max_width             = getenv_number('IMAGING_MAX_WIDTH',       2048),
+        max_height            = getenv_number('IMAGING_MAX_HEIGHT',      2048),
+        max_operations        = getenv_number('IMAGING_MAX_OPERATIONS',  10),
+        default_quality       = getenv_number('IMAGING_DEFAULT_QUALITY', 90),
+        default_strip         = getenv_boolean('IMAGING_DEFAULT_STRIP',  true),
+        default_format        = getenv_string('IMAGING_DEFAULT_FORMAT',  "png"),
+        max_concurrency       = getenv_number('IMAGING_MAX_CONCURRENCY', 24),
+        named_operations_file = getenv_string('IMAGING_NAMED_OPERATIONS_FILE', nil)
     }})
 
     -- Store config
     _M.config = config
 
-    params.init{
-        max_width       = config.max_width,
-        max_height      = config.max_height,
-        max_operations  = config.max_operations,
-        default_format  = config.default_format,
-        default_quality = config.default_quality,
-        default_strip   = config.default_strip,
-    }
+    local ok, err = params.init(config)
 
-    vips.init{
-        default_format  = config.default_format,
-        default_quality = config.default_quality,
-        default_strip   = config.default_strip,
-        max_concurrency = config.max_concurrency,
-    }
+    if not ok then
+        util.log_error(err)
+    end
+
+    vips.init(config)
+    stats.init(config)
 
     -- HTTP client
     _M.http = http:new()
@@ -126,8 +110,6 @@ local function validate_allowed_origin(image_url)
 end
 
 function _M.access_phase()
-
-    -- ProFi:start()
 
     local url_params = ngx.var.imaging_params
     local image_url  = ngx.var.imaging_url
@@ -200,43 +182,29 @@ function _M.request_handler()
     ngx_update_time()
     local end_time = ngx_now()
 
-    stats.log_fetch_time(_M.config.shm_name,     start_processing - start_fetch)
-    stats.log_operating_time(_M.config.shm_name, end_time - start_processing)
+    stats.log_fetch_time(start_processing - start_fetch)
+    stats.log_operating_time(end_time - start_processing)
 
-    ngx.header["Content-Type"]   = 'image/' .. format
+    ngx.header["Content-Type"] = 'image/' .. format
     ngx.say(image)
+
 end
 
 
 function _M.log_phase()
-
-    if not _M.config.shm_name then
-        return
-    end
-
-    local dict = shared[_M.config.shm_name]
-
-    if not dict then
-        return
-    end
-
     local values = {
-        connect_time    = to_number(ngx.var.upstream_connect_time),
-        response_time   = to_number(ngx.var.upstream_response_time),
-        response_status = to_number(ngx.var.upstream_status),
-        cache_status    = ngx.var.upstream_cache_status,
-        response_length = to_number(ngx.var.upstream_response_length),
+        connect_time    = to_number(ngx_var.upstream_connect_time),
+        response_time   = to_number(ngx_var.upstream_response_time),
+        response_status = to_number(ngx_var.upstream_status),
+        cache_status    = ngx_var.upstream_cache_status,
+        response_length = to_number(ngx_var.upstream_response_length),
     }
-    stats.log_upstream_response(_M.config.shm_name, values)
+    stats.log_upstream_response(values)
 end
 
 function _M.status_page()
 
-    if not _M.config.shm_name then
-        return ngx.exit(200)
-    end
-
-    local service_stats = stats.get_stats(_M.config.shm_name)
+    local service_stats = stats.get_stats()
 
     ngx.header["content-type"]  = 'application/json'
     ngx.header["cache-control"] = "no-cache"

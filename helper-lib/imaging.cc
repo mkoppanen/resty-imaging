@@ -88,6 +88,8 @@ public:
 
     bool round(int x, int y);
 
+    bool blur(double sigma);
+
     void *to_buffer(std::string format, int quality, bool strip, size_t *len);
 
     ~Imaging();
@@ -393,6 +395,13 @@ bool Imaging::round(int x, int y) {
     return true;
 }
 
+bool Imaging::blur(double sigma) {
+
+    this->image = this->image.gaussblur(sigma, NULL);
+    return true;
+
+}
+
 void *Imaging::to_buffer(std::string format, int quality, bool strip, size_t *len)
 {
     void *buf = NULL;
@@ -466,6 +475,15 @@ extern "C" {
             e.ostream_print(std::cerr);
             return false;
         }  
+    }
+
+    bool Imaging_blur(Imaging *img, double sigma) {
+        try {
+            return img->blur(sigma);
+        } catch(VError &e) {
+            e.ostream_print(std::cerr);
+            return false;
+        }
     }
 
     int Imaging_width(Imaging *img) {

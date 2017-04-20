@@ -3,3 +3,4 @@ test/t_*
 *.o
 *.d
 *.so
+lua-releng
