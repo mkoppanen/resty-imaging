@@ -23,6 +23,13 @@ include $(SRCS:.cc=.d)
 install: all
 	cp *.so /usr/local/lib
 
+dylib: ${TARGET_LIB}
+	$(CPP) -dynamiclib *.o -o libimaginghelpers.dylib ${LDFLAGS}
+	cp libimaginghelpers.dylib ../test/libimaginghelpers.dylib
+
+test: dylib
+	cd ../test && luajit test.lua && luajit test_params.lua
+
 .PHONY: clean
 clean:
 	-${RM} ${TARGET_LIB} ${OBJS} $(SRCS:.cc=.d)

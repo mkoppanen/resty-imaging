@@ -1,56 +1,52 @@
-local function test_write_files(image, name, t)
 
-    local basename = "test/t_".. name .. "_" .. t
+package.path = package.path .. ';../lib/?.lua;'
 
-    local op = io.open(basename .. ".jpg", "wb")
-    op:write(image:to_buffer("jpg"))
+local lib = require "resty.imaging_vips"
+local luaunit = require "luaunit"
 
-    local op = io.open(basename .. ".png", "wb")
-    op:write(image:to_buffer("png"))
+local Imaging = lib.Imaging
+
+local function file_get_contents(name)
+    local fp = io.open(name, "rb")
+    return fp:read("*all")
+end
+
+local function test_write_files(name, image)
+
+    local jpg_output, err = image:to_buffer("jpg", 100, true)
+    
+    local op = io.open("test_output_" .. name .. ".jpg", "wb")
+    op:write(jpg_output)
+
+    local png_output, err = image:to_buffer("png", 100, true)
+
+    local op = io.open("test_output_" .. name .. ".png", "wb")
+    op:write(png_output)
 
 end
 
-local function run_test(name)
+function testBackgroundColour()
 
-    local fp = io.open("test/" .. name, "rb")
-    local str = fp:read("*all")
+    local src = file_get_contents("landscape.png")
 
-    local image = Imaging.new_from_buffer(str, string_len(str))
-    image:resize(200, 200, libimaging.ResizeModeFill)
+    local image, err = Imaging.new_from_buffer(src, src:len())
+    luaunit.assertNil(err)
 
-    test_write_files(image, name, "resize_fill")
+    local rc = image:set_background_colour(255, 0, 255)
+    luaunit.assertTrue(rc)
 
+    test_write_files("background_colour1", image)
 
-    local image = Imaging.new_from_buffer(str, string_len(str))
-    image:resize(200, 200, libimaging.ResizeModeFit)
+    local rc = image:resize(200, 200, Imaging.ResizeMode.fill)
+    luaunit.assertTrue(rc)
 
-    test_write_files(image, name, "resize_fit")
-
-
-    local image = Imaging.new_from_buffer(str, string_len(str))
-    image:round(100, 100)
-    test_write_files(image, name, "round_100")
-
-
-    local image = Imaging.new_from_buffer(str, string_len(str))
-    image:resize(400, 400, libimaging.ResizeModeFit)
-    image:crop(200, 200, libimaging.GravitySmart)
-
-    test_write_files(image, name, "resize_fit_crop_smart")
-
-
+    test_write_files("background_colour2", image)
 end
 
-local function test()
+lib.init({
+    default_format  = "png",
+    default_quality = 100,
+    default_strip   = false
+})
 
-    Imaging.init("test", 8)
-
-    run_test("face.jpg")
-    run_test("landscape.png")
-    run_test("landscape2.jpg")
-    run_test("smart_test.png")
-
-    Imaging.shutdown()
-end
-
-test()
+os.exit( luaunit.LuaUnit.run() )

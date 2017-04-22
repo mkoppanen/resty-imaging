@@ -1,20 +1,20 @@
 
 local util = require "resty.imaging_util"
 
-local table_insert  = table.insert
-local string_gmatch = string.gmatch
-local string_match  = string.match
-local to_number     = tonumber
+local l_table_insert = table.insert
+local l_tonumber     = tonumber
+local l_pairs        = pairs
+local l_rawset       = rawset
+local l_setmetable   = setmetatable
 
-
-
-local supported_formats = {
-    png  = true,
-    jpg  = true,
-    jpeg = true,
-    gif  = true,
-    webp = true,
-    tiff = true,
+local supported_operations = {
+    CROP   = "crop",
+    BLUR   = "blur",
+    RESIZE = "resize",
+    ROUND  = "round",
+    NAMED  = "named",
+    FORMAT = "format",
+    OPTION = "option"
 }
 
 local supported_modes = {
@@ -37,10 +37,10 @@ local supported_gravity = {
 }
 
 local _M = {
-    named_ops = {}
+    named_ops = {},
+    ops       = {},
+    supported_formats = {}
 }
-local ops = {}
-
 
 local function validate_always_valid()
     return true
@@ -59,6 +59,37 @@ local function to_boolean(str)
     end
 end
 
+
+local function parse_colour(str)
+
+    if not str then
+        return nil, 'empty colour string'
+    end
+
+    if str:len() == 3 then
+
+        r = l_tonumber("0x" .. str:sub(1, 1)) * 17
+        g = l_tonumber("0x" .. str:sub(2, 2)) * 17
+        b = l_tonumber("0x" .. str:sub(3, 3)) * 17
+
+    elseif str:len() == 6 then
+
+        r = l_tonumber("0x" .. str:sub(1, 2))
+        g = l_tonumber("0x" .. str:sub(3, 4))
+        b = l_tonumber("0x" .. str:sub(5, 6))
+
+    else
+        return nil, "malformed colour string " .. str 
+    end
+
+    return {
+        r = r,
+        g = g,
+        b = b,
+    }
+end
+
+
 local function validate_width(width)
     return width and width < _M.opts.max_width and width > 0
 end
@@ -76,7 +107,7 @@ local function validate_quality(quality)
 end
 
 local function validate_format(str)
-    return str and supported_formats[str] ~= nil
+    return str and _M.supported_formats[str] ~= nil
 end
 
 local function validate_resize_mode(str)
@@ -85,6 +116,14 @@ end
 
 local function validate_gravity(str)
     return str and supported_gravity[str] ~= nil
+end
+
+local function validate_colour(colour)
+    if not colour then
+        return false
+    end
+
+    return colour.r >= 0 and colour.r <= 255 and colour.g >= 0 and colour.g <= 255 and colour.b >= 0 and colour.b <= 255
 end
 
 local function make_boolean_arg()
@@ -96,7 +135,7 @@ end
 
 local function make_number_arg(validate_fn)
     return {
-        convert_fn  = to_number,
+        convert_fn  = l_tonumber,
         validate_fn = validate_fn,
     }
 end
@@ -105,7 +144,16 @@ local function make_string_arg(validate_fn)
     return { validate_fn = validate_fn, }
 end
 
-function _M.init(opts)
+local function make_colour_arg(validate_fn)
+    return { 
+        convert_fn  = parse_colour,
+        validate_fn = validate_fn,
+    }
+end
+
+function _M.init(formats, opts)
+
+    
 
     assert (opts.max_width)
     assert (opts.max_height)
@@ -114,10 +162,10 @@ function _M.init(opts)
     assert (opts.default_quality)
     assert (opts.default_strip)
 
+    _M.supported_formats = formats
     _M.opts = opts
 
-
-    ops = {
+    _M.ops = {
         crop = {
             params = {
                 w  = make_number_arg(validate_width),
@@ -132,13 +180,19 @@ function _M.init(opts)
             end
         },
 
+        option = {
+            params = {
+                c = make_colour_arg(validate_colour),
+            },
+        },
+
         blur = {
             params = {
                 s  = make_number_arg(validate_sigma),
             },
             validate_fn = function(p)
                 if not p.s then
-                    return nil, 'missing both s= (sigma) for blur'
+                    return nil, 'missing s= (sigma) for blur'
                 end
                 return true
             end
@@ -179,7 +233,13 @@ function _M.init(opts)
                 n = make_string_arg(validate_name)
             },
             validate_fn = function(p)
-                return p.n and _M.named_ops[p.n] ~= nil
+                if not p.n then
+                    return nil, 'named operation is missing n= param'
+                end
+                if not _M.named_ops[p.n] then
+                    return nil, 'the named operation ' .. p.n .. ' does not exist'
+                end
+                return true
             end
         },
 
@@ -203,10 +263,10 @@ function _M.init(opts)
         local lines, err = util.file_get_lines(opts.named_operations_file)
 
         if not lines then
-            return nil, err
+            return nil, "Failed to read named operations file(" .. opts.named_operations_file .. "): " .. err
         end
 
-        for n, line in pairs(lines) do
+        for n, line in l_pairs(lines) do
 
             local name, operation = line:match('(.+)%s?:%s?(.+)')
 
@@ -226,8 +286,6 @@ function _M.init(opts)
     end
 
     return true
-
-
 end
 
 
@@ -249,7 +307,7 @@ local function ordered_table()
     selfmeta.__nextkey = nextkey
  
     function selfmeta:__newindex(key, val)
-        rawset(self, key, val)
+        l_rawset(self, key, val)
         if nextkey[key] == nil then -- adding a new key
             nextkey[nextkey[nextkey]] = key
             nextkey[nextkey] = key
@@ -258,32 +316,45 @@ local function ordered_table()
  
     function selfmeta:__pairs() return onext, self, firstkey end
  
-    return setmetatable(key2val, selfmeta)
+    return l_setmetable(key2val, selfmeta)
+end
+
+
+local function new_manifest()
+    return {
+        format     = nil,
+        option     = nil,
+        operations = ordered_table()
+    }
 end
 
 function _M.parse(str)
 
-    local parsed = ordered_table()
-    local pos = 0
-    local has_format = false
+    local manifest = new_manifest()
 
-    for name, params in string_gmatch(str, '([^/]+)/([^/]+)') do
+    for name, params in str:gmatch('([^/]+)/([^/]+)') do
 
-        if ops[name] then
+        local op_definition = _M.ops[name]
+
+        if op_definition then
             local fn_params = {}
 
-            if ops[name].get_default_params then
-                fn_params = ops[name].get_default_params()
+            if op_definition.get_default_params then
+                fn_params = op_definition.get_default_params()
             end
 
             -- Loop through recognised params
-            for n, def in pairs(ops[name].params) do
+            for n, def in l_pairs(op_definition.params) do
 
-                local value = string_match(params, n .. '=([^,/]+)')
+                local value = params:match(n .. '=([^,/]+)')
 
                 if value then
                     if def.convert_fn then
-                        value = def.convert_fn(value)
+                        value, err = def.convert_fn(value)
+
+                        if value == nil then
+                            return nil, (err or "Failed to convert param")
+                        end
                     end
 
                     if def.validate_fn then
@@ -295,8 +366,8 @@ function _M.parse(str)
                 end
             end
 
-            if ops[name].validate_fn then
-                local ok, err = ops[name].validate_fn(fn_params)
+            if op_definition.validate_fn then
+                local ok, err = op_definition.validate_fn(fn_params)
 
                 if not ok then
                     return nil, err
@@ -304,37 +375,37 @@ function _M.parse(str)
             end
 
             -- Return named operation if exists
-            if name == "named" then
-                return _M.named_ops[fn_params["n"]];
+            if name == supported_operations.NAMED then
+                return _M.named_ops[fn_params["n"]]
+            elseif name == supported_operations.FORMAT then
+                manifest.format = fn_params
+            elseif name == supported_operations.OPTION then
+                manifest.option = fn_params
+            else
+                l_table_insert(manifest.operations, {
+                    name   = name,
+                    params = fn_params
+                })
             end
 
-            table_insert(parsed, {
-                name   = name,
-                params = fn_params
-            })
-        end
-
-        if name == "format" then
-            has_format = true
+        else
+            return nil, 'unrecognised operation ' .. name
         end
     end
 
-    if #parsed == 0 then
+    if #manifest.operations == 0 then
         return nil, 'did not find valid operations'
     end
 
-    if #parsed > _M.opts.max_operations then
+    if #manifest.operations > _M.opts.max_operations then
         return nil, 'amount of operations exceeds configured maximum'
     end
 
-    if not has_format then
-        table_insert(parsed, {
-            name   = "format",
-            params = ops["format"].get_default_params()
-        })
+    if not manifest.format then
+        manifest.format = _M.ops[supported_operations.FORMAT].get_default_params()
     end
 
-    return parsed, nil
+    return manifest, nil
 end
 
 return _M

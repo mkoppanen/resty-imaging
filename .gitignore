@@ -1,6 +1,7 @@
 .DS_Store
-test/t_*
+test/test_output_*
 *.o
 *.d
 *.so
 lua-releng
+*.dylib

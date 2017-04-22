@@ -3,7 +3,7 @@ local ffi = require "ffi"
 local util = require "resty.imaging_util"
 
 local table_unpack = table.unpack
-local string_len = string.len
+local table_insert = table.insert
 
 -- Load VIPS
 local libimaging = ffi.load("imaginghelpers")
@@ -34,13 +34,15 @@ typedef struct Imaging Imaging;
 
 bool imaging_ginit(const char *name, int concurrency);
 
+const char **imaging_get_formats(size_t *num_formats);
+
 void imaging_gshutdown();
 
 Imaging *Imaging_new_from_buffer(unsigned char *buf, size_t len);
 
-int Imaging_width(Imaging *img);
+int Imaging_get_width(Imaging *img);
 
-int Imaging_height(Imaging *img);
+int Imaging_get_height(Imaging *img);
 
 bool Imaging_resize(Imaging *img, int width, int height, ResizeMode);
 
@@ -49,6 +51,8 @@ bool Imaging_crop(Imaging *img, int width, int height, Gravity);
 bool Imaging_round(Imaging *img, int x, int y);
 
 bool Imaging_blur(Imaging *img, double sigma);
+
+bool Imaging_set_background_colour(Imaging *img, int r, int g, int b);
 
 unsigned char *Imaging_to_buffer(Imaging *img, const char *format, int quality, bool strip, size_t *len);
 
@@ -101,14 +105,36 @@ local mt = {
         )
     end,
 
+    get_formats = function()
+
+        local formats = {}
+
+        local len = ffi.new'size_t[1]'
+        local arr = libimaging.imaging_get_formats(len)
+
+        local num = tonumber(len[0]) 
+
+        if num == 0 then
+            return formats
+        end
+
+        for i = 0, num - 1 do
+            formats[ffi.string(arr[i])] = true
+        end
+
+        return formats
+    end,
+
     -- methods
-    width = libimaging.Imaging_width,
-    height = libimaging.Imaging_height,
+    get_width = libimaging.Imaging_get_width,
+    get_height = libimaging.Imaging_get_height,
 
     resize = libimaging.Imaging_resize,
     crop   = libimaging.Imaging_crop,
     round  = libimaging.Imaging_round,
     blur   = libimaging.Imaging_blur,
+
+    set_background_colour = libimaging.Imaging_set_background_colour,
 
     to_buffer = function (o, format, quality, strip) 
 
@@ -134,6 +160,8 @@ Imaging = ffi.metatype('Imaging', mt)
 
 -- higher level Lua interface
 local _M = {
+    Imaging = Imaging,
+    opts    = {},
 }
 
 function _M.init(opts)
@@ -141,12 +169,16 @@ function _M.init(opts)
 
     assert(opts.default_format)
     assert(opts.default_quality)
-    assert(opts.default_strip)
-
+    assert(opts.default_strip ~= nil)
 
     _M.opts = opts
-
 end
+
+function _M.get_formats()
+    return Imaging.get_formats()
+end
+
+
 
 local transform = {}
 
@@ -211,8 +243,8 @@ transform.round = function (image, params)
     local p = params.p
 
     if p > 0 then
-        local width = image:width()
-        local height = image:height()
+        local width = image:get_width()
+        local height = image:get_height()
 
         x = width / 2
         y = width / 2
@@ -233,47 +265,35 @@ end
 
 function _M.operate(src_image, manifest)
 
-    local image = Imaging.new_from_buffer(src_image, string_len(src_image))
+    local image = Imaging.new_from_buffer(src_image, src_image:len())
 
     if not image then
         return nil, 'failed to read the image'
     end
 
-    local format  = _M.opts.default_format
-    local quality = _M.opts.default_quality
-    local strip   = _M.opts.default_strip
+    if manifest.option and manifest.option.c then
+        local colour = manifest.option.c
+        local rc = image:set_background_colour(colour.r, colour.g, colour.b)
+    
+        if not rc then
+            return nil, "failed to set background colour"
+        end
+    end
 
-    for _, entry in ipairs(manifest) do
+    for _, entry in ipairs(manifest.operations) do
+       local fn = transform[entry.name]
+        assert(fn)
 
-        if entry.name == "format" then
+        if fn then
+            local ok, err = fn(image, entry.params)
 
-            if entry.params.t then
-                format  = entry.params.t
-            end
-
-            if entry.params.q then
-                quality = entry.params.q
-            end
-
-            if entry.params.s then
-                strip = entry.params.s
-            end
-
-        else
-            local fn = transform[entry.name]
-            assert(fn)
-
-            if fn then
-                local ok, err = fn(image, entry.params)
-
-                if not ok then
-                    return nil, 'failed to execute ' .. entry.name .. ': ' .. err
-                end
+            if not ok then
+                return nil, 'failed to execute ' .. entry.name .. ': ' .. (err or "no error message")
             end
         end
     end
 
-    return image:to_buffer(format, quality, strip), format
+    return image:to_buffer(manifest.format.t, manifest.format.q, manifest.format.s), manifest.format.t
 end
 
 

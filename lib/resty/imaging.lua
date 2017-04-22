@@ -79,13 +79,16 @@ function _M.init(config)
     -- Store config
     _M.config = config
 
-    local ok, err = params.init(config)
+    -- Init vips lib
+    vips.init(config)
+
+    local ok, err = params.init(vips.get_formats(), config)
 
     if not ok then
         util.log_error(err)
     end
 
-    vips.init(config)
+    
     stats.init(config)
 
     -- HTTP client

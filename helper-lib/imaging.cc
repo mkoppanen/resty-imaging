@@ -4,12 +4,15 @@
 
 #include <vips/vips8>
 #include <string>
+#include <vector>
 #include <iostream>
 #include <cstdlib>
+#include <cmath>
 
 using namespace vips;
 
 #define ROUND_MASK "<svg><rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" rx=\"%d\" ry=\"%d\"/></svg>"
+
 
 static
 int s_image_alpha_max(VipsInterpretation interpretation) {
@@ -64,19 +67,42 @@ enum Gravity {
     GravitySmart,
 };
 
+static void *
+s_suffix_list(VipsFormatClass *format, std::list<const char *> *list, void *b)
+{
+    if (format->suffs) {
+        const char **ptr;
+        for (ptr = format->suffs; *ptr; ptr++) {
+            list->push_back((*ptr) + 1);
+        }
+    }
+
+    return NULL;
+}
+
 class Imaging {
 
+private:
     VImage image;
+    double r, g, b;
+    bool interlace;
 
 public:
 
+    static std::list<const char *> get_formats() {
+        std::list<const char *> l;
+        vips_format_map((VipsSListMap2Fn) s_suffix_list, &l, NULL);
+
+        return l;
+    }
+
     Imaging(VImage img);
 
-    int width() {
+    int get_width() {
         return this->image.width();
     }
 
-    int height() {
+    int get_height() {
         return this->image.height();
     }
 
@@ -84,19 +110,23 @@ public:
 
     bool crop(int width, int height, Gravity gravity);
 
-    bool smart_crop(int width, int height);
-
     bool round(int x, int y);
 
     bool blur(double sigma);
 
-    void *to_buffer(std::string format, int quality, bool strip, size_t *len);
+    bool set_background_colour(int r, int g, int b);
+
+    void *to_buffer(const std::string& format, int quality, bool strip, size_t *len);
 
     ~Imaging();
 };
 
 Imaging::Imaging(VImage img) {
     this->image = img;
+    this->r = 255.0;
+    this->g = 255.0;
+    this->b = 255.0;
+    this->interlace = true;
 }
 
 bool Imaging::resize(int width, int height, ResizeMode mode) {
@@ -125,36 +155,24 @@ bool Imaging::resize(int width, int height, ResizeMode mode) {
 
         if (mode == ResizeModeFill) {
 
-            if (this->image.width() < width) {
+            if (this->image.width() < width || this->image.height() < height) {
+
+                int w = (this->image.width() < width)   ? std::round((width - this->image.width()) / 2)   : 0;
+                int h = (this->image.height() < height) ? std::round((height - this->image.height()) / 2) : 0;
 
                 this->image = this->image.embed(
-                    (width - this->image.width()) / 2,
-                    0,
+                    w,
+                    h,
                     width,
                     height, 
                     VImage::option()
                         ->set("extend", VIPS_EXTEND_BACKGROUND)
-                        ->set("background", 255)
+                        ->set("background", to_vectorv(4, this->r, this->g, this->b, 0))
                 );
 
-            }
-            else if (this->image.height() < height) {
-
-                this->image = this->image.embed(
-                    0,
-                    (height - this->image.height()) / 2,
-                    width,
-                    height, 
-                    VImage::option()
-                        ->set("extend", VIPS_EXTEND_BACKGROUND)
-                        ->set("background", 255)
-                );
             }
         }
-
-
         return true;
-
     }
     else if (mode == ResizeModeCrop) {
 
@@ -257,97 +275,14 @@ bool Imaging::crop(int width, int height, Gravity gravity) {
 
         case GravitySmart:
 
-            return this->smart_crop(width, height);
-            break;
+            this->image = this->image.smartcrop(width, height);
+            return true;
     }
 
     this->image = this->image.extract_area(x, y, width, height);
     return true;
 }
 
-bool Imaging::smart_crop(int width, int height)
-{
-
-    VImage image = this->image;
-
-    int x_crop = image.width() - width;
-    int y_crop = image.height() - height;
-
-    if (image.width() < width || image.height() < height) {
-        return false;
-    }
-
-    // iterate in steps of 10
-    int step = std::max((x_crop / 10.0) + 0.1, (y_crop / 10.0) + 0.1);
-
-    bool x_done = false;
-    bool y_done = false;
-
-    do {
-
-        if (!x_done) {
-
-            x_crop = image.width() - width;
-            if (x_crop > 0) {
-
-                if (x_crop > 2 * step) {
-                    x_crop = step;
-                }
-
-                double left = image.extract_area(0, 0, x_crop, image.height())
-                    .hist_find()
-                    .hist_entropy();
-
-                double right = image.extract_area(image.width() - x_crop, 0, x_crop, image.height())
-                    .hist_find()
-                    .hist_entropy();
-
-                if (left > right) {
-                    image = image.extract_area(0, 0, image.width() - x_crop, image.height());
-                }
-                else {
-                    image = image.extract_area(x_crop, 0, image.width() - x_crop, image.height());
-                }
-
-            }
-
-            x_done = image.width() <= width;
-        }
-
-        if (!y_done) {
-
-            y_crop = image.height() - height;
-
-            if (y_crop > 0) {
-
-                if (y_crop > 2 * step) {
-                    y_crop = step;
-                }
-
-                double top = image.extract_area(0, 0, image.width(), y_crop)
-                    .hist_find()
-                    .hist_entropy();
-
-                double bottom = image.extract_area(0, image.height() - y_crop, image.width(), y_crop)
-                    .hist_find()
-                    .hist_entropy();
-
-                if (top > bottom) {
-                    image = image.extract_area(0, 0, image.width(), image.height() - y_crop);
-                }
-                else {
-                    image = image.extract_area(0, y_crop, image.width(), image.height() - y_crop);
-                }
-            }
-
-            y_done = image.height() <= height;
-        }
-
-    } while (!x_done || !y_done);
-
-    this->image = image;
-    return true;
-}
 
 bool Imaging::round(int x, int y) {
 
@@ -395,22 +330,29 @@ bool Imaging::round(int x, int y) {
     return true;
 }
 
-bool Imaging::blur(double sigma) {
-
+bool Imaging::blur(double sigma)
+{
     this->image = this->image.gaussblur(sigma, NULL);
     return true;
-
 }
 
-void *Imaging::to_buffer(std::string format, int quality, bool strip, size_t *len)
+bool Imaging::set_background_colour(int r, int g, int b)
+{
+    this->r = r;
+    this->g = g;
+    this->b = b;
+    return true;
+}
+
+void *Imaging::to_buffer(const std::string& format, int quality, bool strip, size_t *len)
 {
     void *buf = NULL;
 
     VOption *options = (
         VImage::option()
             ->set("strip",      strip)
-            ->set("interlace",  true)
-            ->set("background", 255)
+            ->set("interlace",  this->interlace)
+            ->set("background", to_vectorv(3, this->r, this->g, this->b))
     );
 
     if (format == ".jpg" || format == ".jpeg") {
@@ -431,16 +373,49 @@ Imaging::~Imaging() {
 
 }
 
-
-
 extern "C" {
+
+    static
+        char **s_format_list = NULL;
+
+    static
+        size_t s_num_formats = 0;
 
     bool imaging_ginit(const char *name, int concurrency) {
         vips_concurrency_set(concurrency);
-        return VIPS_INIT(name) == 0;
+        bool rc = VIPS_INIT(name) == 0;
+
+        if (rc) {
+            std::list<const char *> formats = Imaging::get_formats();
+
+            s_format_list = (char **) calloc(formats.size(), sizeof (char *));
+            s_num_formats = formats.size();
+
+            int i = 0;
+
+            for (std::list<const char *>::iterator it = formats.begin(); it != formats.end(); ++it) {
+                s_format_list[i++] = strdup(*it);
+            }
+        }
+
+        return rc;
+    }
+
+    const char **imaging_get_formats(size_t *len) {
+        *len = s_num_formats;
+        return (const char **) s_format_list;
     }
 
     void imaging_gshutdown() {
+
+        if (s_format_list) {
+            size_t i;
+            for (i = 0; i < s_num_formats; i++) {
+                free(s_format_list[i]);
+            }
+            free(s_format_list);
+        }
+
         vips_shutdown();
     }
 
@@ -448,7 +423,13 @@ extern "C" {
 
         try {
 
-            VImage img = VImage::new_from_buffer(buf, len, NULL, NULL);
+            VImage img = VImage::new_from_buffer(
+                buf,
+                len,
+                NULL,
+                NULL
+            );
+            
             return new Imaging(img);
 
         } catch(VError &e) {
@@ -486,12 +467,12 @@ extern "C" {
         }
     }
 
-    int Imaging_width(Imaging *img) {
-        return img->width();
+    int Imaging_get_width(Imaging *img) {
+        return img->get_width();
     }
 
-    int Imaging_height(Imaging *img) {
-        return img->height();
+    int Imaging_get_height(Imaging *img) {
+        return img->get_height();
     }
 
     bool Imaging_round(Imaging *img, int x, int y) {
@@ -502,6 +483,10 @@ extern "C" {
             e.ostream_print(std::cerr);
             return false;
         }
+    }
+
+    bool Imaging_set_background_colour(Imaging *img, int r, int g, int b) {
+        return img->set_background_colour(r, g, b);
     }
 
     void *Imaging_to_buffer(Imaging *img, const char *format, int quality, bool strip, size_t *len) {

@@ -1,8 +1,9 @@
 
-package.path = package.path .. ';../lib/resty/?.lua'
+package.path = package.path .. ';../lib/?.lua;'
 
 local luaunit = require "luaunit"
-local params = require "imaging_params"
+local params = require "resty.imaging_params"
+local inspect = require "inspect"
 
 local DEFAULT_QUALITY = 88
 local DEFAULT_FORMAT  = "png"
@@ -14,18 +15,19 @@ local test_params = {
 		str = "/resize/w=100,h=100",
 
 		expect = {
-			{
-			    name = "resize",
-			    params = {
-			      	h = 100,
-			      	w = 100
-			    }
-			  }, {
-			    name = "format",
-			    params = {
-			      	q = DEFAULT_QUALITY,
-			      	t = DEFAULT_FORMAT,
-			      	s = DEFAULT_STRIP
+			format = {
+		      	q = DEFAULT_QUALITY,
+		      	t = DEFAULT_FORMAT,
+		      	s = DEFAULT_STRIP
+			},
+
+			operations = { 
+				{
+			    	name = "resize",
+			    	params = {
+			      		h = 100,
+			      		w = 100
+			    	}
 			    }
 			}
 		}
@@ -35,19 +37,19 @@ local test_params = {
 		str = "/resize/w=100,h=100/format/t=png,q=50,s=false",
 
 		expect = {
-			{
-			    name = "resize",
-			    params = {
-			      	h = 100,
-			      	w = 100
-			    }
-			  }, {
-			    name = "format",
-			    params = {
-			      	q = 50,
-			      	t = "png",
-			      	s = false
-			    }
+			format = {
+		      	q = 50,
+		      	t = "png",
+		      	s = false
+		    },
+		    operations = {
+				{
+				    name = "resize",
+				    params = {
+				      	h = 100,
+				      	w = 100
+				    }
+				}
 			}
 		}
 	},
@@ -56,33 +58,33 @@ local test_params = {
 		str = "/resize/w=5,h=12/crop/w=100,h=120,g=center/round/p=100/format/s=false",
 
 		expect = {
-			{
-			    name = "resize",
-			    params = {
-			      	w = 5,
-			      	h = 12,
-			    }
+			format = {
+		      	q = DEFAULT_QUALITY,
+		      	t = DEFAULT_FORMAT,
+				s = false
 			},
-			{
-			    name = "crop",
-			    params = {
-			      	w = 100,
-			      	h = 120,
-			      	g = "center",
-			    }
-			},
-			{
-				name = "round",
-				params = {
-					p = 100
-				}
-			},
-			{
-				name = "format",
-				params = {
-			      	q = DEFAULT_QUALITY,
-			      	t = DEFAULT_FORMAT,
-					s = false
+
+			operations = {
+				{
+				    name = "resize",
+				    params = {
+				      	w = 5,
+				      	h = 12,
+				    }
+				},
+				{
+				    name = "crop",
+				    params = {
+				      	w = 100,
+				      	h = 120,
+				      	g = "center",
+				    }
+				},
+				{
+					name = "round",
+					params = {
+						p = 100
+					}
 				}
 			}
 		}
@@ -92,31 +94,31 @@ local test_params = {
 		str = "/named/n=thumbnail",
 
 		expect = {
-			{
-			    name = "resize",
-			    params = {
-			      	w = 500,
-			      	h = 500,
-			      	m = "fit"
-			    }
+
+			format = {
+		      	q = DEFAULT_QUALITY,
+		      	t = "webp",
+				s = DEFAULT_STRIP
 			},
-			{
-			    name = "crop",
-			    params = {
-			      	w = 200,
-			      	h = 200,
-			      	g = "sw",
-			    }
-			},
-			{
-				name = "format",
-				params = {
-			      	q = DEFAULT_QUALITY,
-			      	t = "webp",
-					s = DEFAULT_STRIP
+
+			operations = {
+				{
+				    name = "resize",
+				    params = {
+				      	w = 500,
+				      	h = 500,
+				      	m = "fit"
+				    }
+				},
+				{
+				    name = "crop",
+				    params = {
+				      	w = 200,
+				      	h = 200,
+				      	g = "sw",
+				    }
 				}
 			}
-
 		}
 	},
 
@@ -124,29 +126,30 @@ local test_params = {
 		str = "/named/n=avatar",
 
 		expect = {
-			{
-			    name = "resize",
-			    params = {
-			      	w = 100,
-			      	h = 100,
-			      	m = "crop"
-			    }
+
+			format = {
+		      	q = DEFAULT_QUALITY,
+		      	t = "jpg",
+				s = DEFAULT_STRIP
 			},
-			{
-			    name = "round",
-			    params = {
-			      	p = 100,
-			    }
-			},
-			{
-				name = "format",
-				params = {
-			      	q = DEFAULT_QUALITY,
-			      	t = "jpg",
-					s = DEFAULT_STRIP
+
+
+			operations = {
+				{
+				    name = "resize",
+				    params = {
+				      	w = 100,
+				      	h = 100,
+				      	m = "crop"
+				    }
+				},
+				{
+				    name = "round",
+				    params = {
+				      	p = 100,
+				    }
 				}
 			}
-
 		}
 	},
 }
@@ -165,7 +168,13 @@ local failing_params = {
 
 function testParsing()
 
-	params.init({
+	params.init({ 
+		png = true,
+		jpeg = true,
+		jpg = true,
+		webp = true
+
+	}, {
 		max_width      = 2000,
 		max_height     = 2000,
 		max_operations = 10,
@@ -179,8 +188,14 @@ function testParsing()
 
 		local res, err = params.parse(t.str)
 
+		if not res then
+			print ('ERR=', res, err)
+		end
+
+		luaunit.assertEquals(res.format, t.expect.format)
+
 		for k, _ in pairs(t.expect) do
-			luaunit.assertEquals(res[k], t.expect[k])
+			
 		end
 	end
 
