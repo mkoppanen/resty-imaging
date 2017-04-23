@@ -114,7 +114,7 @@ y (integer) - radius y (optional, cryptic)
 * format, switch image formats. Format counts only once so specifying it multiple times between operations is pointless.
 
 ```
-t (string) - what format to use: png, jpg, webp and gif should work. tiff is a hit and miss.
+t (string) - what format to use. Supported format depends on what libvips is configured with
 q (integer) - output quality (between 1 and 100) for jpeg images
 s (boolean) - strip output
 ```
