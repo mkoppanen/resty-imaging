@@ -1,8 +1,12 @@
 resty-imaging
 =============
 
-Micro-service approach to resizing, cropping, rounding and serving images. Built with openresty, lua and C++.
+Micro-service approach to resizing, cropping, rounding and serving images. 
+Built with openresty, lua and C++.
 
+Provides a simple to deploy backend for common image operations for mobile
+applications, including resizing images for different device sizes and making
+round images for avatars. 
 
 
 License
@@ -140,6 +144,16 @@ http://localhost:8080/resize/w=500,h=500,m=crop/http://another.example.com/origi
 
 ```
 http://localhost:8080/resize/w=500,h=500,m=fit/crop/w=200,h=200,g=center/format/t=png/http://another.example.com/original.jpg
+```
+
+Tests
+-----
+
+Run the following commands:
+
+```
+$ docker-compose up
+$ ./test.sh
 ```
 
 Credits
