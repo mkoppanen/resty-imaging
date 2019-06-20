@@ -1,7 +1,7 @@
 version: '2'
 services:
-  ngx:
-    container_name: imaging
+  imaging_test:
+    image: imaging
     build:
       context: .
     ports:
