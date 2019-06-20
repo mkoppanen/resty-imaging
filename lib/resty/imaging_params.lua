@@ -331,6 +331,7 @@ end
 function _M.parse(str)
 
     local manifest = new_manifest()
+    local err
 
     for name, params in str:gmatch('([^/]+)/([^/]+)') do
 
