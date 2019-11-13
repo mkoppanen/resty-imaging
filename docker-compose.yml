@@ -1,7 +1,7 @@
 version: '2'
 services:
   imaging_test:
-    image: imaging
+    image: mkoppanen/resty-imaging
     build:
       context: .
     ports:
@@ -18,6 +18,6 @@ services:
       - "./test/test.ops:/tmp/test.ops"
 
     environment:
-      - IMAGING_ALLOWED_ORIGINS=upload.wikimedia.org
+      - IMAGING_ALLOWED_ORIGINS=static
       - IMAGING_DEFAULT_FORMAT=png
       - IMAGING_NAMED_OPERATIONS_FILE=/tmp/test.ops

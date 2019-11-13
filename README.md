@@ -62,13 +62,10 @@ URLs
 The urls in resty-imaging work in the following way:
 
 ```
-http://localhost:8080/<operation name>/<operation params>/<operation name>/<operation params>/.../http://another.example.com/original.jpg
+http://localhost:8080/<operation name>/<operation params>/<operation name>/<operation params>/...|http://another.example.com/original.jpg
 ```
 
 The three dots above mean that you can keep on putting operations and params as needed.
-They are actually not required or allowed in the url. Imagine, I had to add this note
-separately because a friend of mine sent a message saying "Hey, it looks good but I am getting
-an error with the dots".
 
 Currently resty-imaging recognises the following operation names:
 
@@ -139,12 +136,31 @@ Some examples
 -------------
 
 ```
-http://localhost:8080/resize/w=500,h=500,m=crop/http://another.example.com/original.jpg
+http://localhost:8080/resize/w=500,h=500,m=crop|http://another.example.com/original.jpg
 ```
 
 ```
-http://localhost:8080/resize/w=500,h=500,m=fit/crop/w=200,h=200,g=center/format/t=png/http://another.example.com/original.jpg
+http://localhost:8080/resize/w=500,h=500,m=fit/crop/w=200,h=200,g=center/format/t=png|http://another.example.com/original.jpg
 ```
+
+## Fixed source server
+
+```
+        set $imaging_source_domain "static:8080";
+
+        location ~ ^/(?<imaging_params>.+?)\|(?<imaging_base_url>.*)$ {
+            ...
+            set $imaging_url "http://$imaging_source_domain$imaging_base_url$is_args$args";
+            ...
+        }
+```
+
+With the above configuration following urls can be used (/original.jpg is converted to http://static:8080/original.jpg):
+
+```
+http://localhost:8080/resize/w=500,h=500,m=fit|/original.jpg
+```
+
 
 Tests
 -----

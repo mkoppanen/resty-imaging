@@ -65,14 +65,14 @@ function _M.init(config)
 
     setmetatable(config, {__index={
         shm_name              = "imaging",
-        allowed_origins       = getenv_table('IMAGING_ALLOWED_ORIGINS',  {}),
-        max_width             = getenv_number('IMAGING_MAX_WIDTH',       2048),
-        max_height            = getenv_number('IMAGING_MAX_HEIGHT',      2048),
-        max_operations        = getenv_number('IMAGING_MAX_OPERATIONS',  10),
-        default_quality       = getenv_number('IMAGING_DEFAULT_QUALITY', 90),
-        default_strip         = getenv_boolean('IMAGING_DEFAULT_STRIP',  true),
-        default_format        = getenv_string('IMAGING_DEFAULT_FORMAT',  "png"),
-        max_concurrency       = getenv_number('IMAGING_MAX_CONCURRENCY', 24),
+        allowed_origins       = getenv_table('IMAGING_ALLOWED_ORIGINS',        {}),
+        max_width             = getenv_number('IMAGING_MAX_WIDTH',             2048),
+        max_height            = getenv_number('IMAGING_MAX_HEIGHT',            2048),
+        max_operations        = getenv_number('IMAGING_MAX_OPERATIONS',        10),
+        default_quality       = getenv_number('IMAGING_DEFAULT_QUALITY',       90),
+        default_strip         = getenv_boolean('IMAGING_DEFAULT_STRIP',        true),
+        default_format        = getenv_string('IMAGING_DEFAULT_FORMAT',        "png"),
+        max_concurrency       = getenv_number('IMAGING_MAX_CONCURRENCY',       24),
         named_operations_file = getenv_string('IMAGING_NAMED_OPERATIONS_FILE', nil)
     }})
 
@@ -96,6 +96,8 @@ function _M.init(config)
 end
 
 local function validate_allowed_origin(image_url)
+
+		util.log_warn(image_url)
 
     local u = neturl.parse(image_url)
 

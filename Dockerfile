@@ -1,6 +1,6 @@
 FROM openresty/openresty:alpine
 
-ENV LIBVIPS_VERSION 8.8.0
+ENV LIBVIPS_VERSION 8.8.3
 
 WORKDIR /tmp
 EXPOSE 8080
