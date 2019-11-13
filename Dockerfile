@@ -5,6 +5,8 @@ ENV LIBVIPS_VERSION 8.8.3
 WORKDIR /tmp
 EXPOSE 8080
 
+ENV x x
+
 RUN apk add --no-cache --virtual build-deps \
         gcc g++ make libc-dev libtool tar gettext git gtk-doc build-base curl \
         glib-dev libpng-dev libwebp-dev libexif-dev libxml2-dev libjpeg-turbo-dev tiff-dev giflib-dev librsvg-dev poppler-dev \
@@ -48,7 +50,14 @@ RUN apk add --no-cache --virtual build-deps \
         font-adobe-utopia-100dpi \
         font-adobe-75dpi \
         font-misc-meltho \
-        font-cursor-misc   
+        font-cursor-misc \
+    && \
+    apk add --no-cache \
+        libimagequant --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing \
+    && \
+    apk add --no-cache --virtual build-deps2 \
+        libimagequant-dev --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing
+
 
 RUN curl -L https://github.com/libvips/libvips/releases/download/v${LIBVIPS_VERSION}/vips-${LIBVIPS_VERSION}.tar.gz | tar xz \
     && \
@@ -88,7 +97,7 @@ RUN cd /tmp/helper-lib \
     && \
     ldconfig /usr/local/lib \
     && \
-    apk del build-deps \
+    apk del build-deps build-deps2 \
     && \
     rm -rf /var/cache/apk/*
 

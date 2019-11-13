@@ -82,13 +82,20 @@ function _M.init(config)
     -- Init vips lib
     vips.init(config)
 
-    local ok, err = params.init(vips.get_formats(), config)
+    local supported_formats = vips.get_formats()
+    local ok, err = params.init(supported_formats, config)
 
     if not ok then
         util.log_error(err)
     end
 
-    
+    local formats = "supported formats: "
+
+    for key, value in pairs(supported_formats) do
+    	formats = formats .. ", " .. key 
+		end
+
+		util.log_info(formats)
     stats.init(config)
 
     -- HTTP client

@@ -138,9 +138,8 @@ local mt = {
 
     to_buffer = function (o, format, quality, strip) 
 
-        local suffix = "." .. format
         local buf_size = ffi.new'size_t[1]'
-        local rc       = libimaging.Imaging_to_buffer (o, suffix, quality, strip, buf_size)
+        local rc       = libimaging.Imaging_to_buffer (o, format, quality, strip, buf_size)
 
         if rc == ffi.NULL then
             return nil, 'Error writing image'

@@ -116,7 +116,7 @@ y (integer) - radius y (optional, cryptic)
 
 ```
 t (string) - what format to use. Supported format depends on what libvips is configured with
-q (integer) - output quality (between 1 and 100) for jpeg images
+q (integer) - output quality (between 1 and 100) for jpeg/png images
 s (boolean) - strip output
 ```
 
@@ -131,6 +131,7 @@ n (string) - the name of the operation
 ```
 s (double) - the sigma value for gaussian blur
 ```
+
 
 Some examples
 -------------

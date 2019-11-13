@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
+#include <cstdio>
 
 using namespace vips;
 
@@ -344,9 +345,10 @@ bool Imaging::set_background_colour(int r, int g, int b)
     return true;
 }
 
-void *Imaging::to_buffer(const std::string& format, int quality, bool strip, size_t *len)
+void *Imaging::to_buffer(const std::string& format_in, int quality, bool strip, size_t *len)
 {
     void *buf = NULL;
+    std::string format;
 
     VOption *options = (
         VImage::option()
@@ -355,8 +357,20 @@ void *Imaging::to_buffer(const std::string& format, int quality, bool strip, siz
             ->set("background", to_vectorv(3, this->r, this->g, this->b))
     );
 
-    if (format == ".jpg" || format == ".jpeg") {
-        options->set("Q", quality);
+    if (format_in.at(0) != '.') {
+    	format.append(".");
+    }
+    format.append(format_in);
+
+    // set options
+    options->set("Q", quality);
+
+    if (strip) {
+    	if (format == ".png") {
+    		options->set("palette", true);
+    		options->set("colours", 256);
+    		options->set("dither", 1.0);
+    	}
     }
 
     this->image.write_to_buffer(
