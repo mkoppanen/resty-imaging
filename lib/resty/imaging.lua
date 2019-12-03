@@ -104,7 +104,11 @@ end
 
 local function validate_allowed_origin(image_url)
 
-		util.log_warn(image_url)
+	  local allowed_origins = _M.config.allowed_origins
+
+		if not next(allowed_origins) then
+	      return true
+		end
 
     local u = neturl.parse(image_url)
 
@@ -112,10 +116,8 @@ local function validate_allowed_origin(image_url)
         return nil, 'failed to parse image url'
     end
 
-    local allowed_origins = _M.config.allowed_origins
-
     if not allowed_origins[u.host] then
-        return nil, 'image host is not included in allowed origins'
+        return nil, 'image host ' .. u.host .. ' is not included in allowed origins'
     end
 
     return true

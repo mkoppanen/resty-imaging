@@ -1,11 +1,6 @@
 version: '2'
 services:
 
-  static:
-    image: nginx:latest
-    volumes:
-      - "./test:/usr/share/nginx/html"
-
   imaging:
     image: mkoppanen/resty-imaging
     build:
@@ -23,8 +18,9 @@ services:
       - "./lib/resty/imaging_vips.lua:/usr/local/openresty/site/lualib/resty/imaging_vips.lua"
       - "./test/test.ops:/tmp/test.ops:ro"
       - "./nginx-static.conf:/var/run/openresty-imaging/nginx.conf:ro"
+      - "./images:/images"
 
     environment:
-      - IMAGING_ALLOWED_ORIGINS=static
-      - IMAGING_DEFAULT_FORMAT=png
-      - IMAGING_NAMED_OPERATIONS_FILE=/tmp/test.ops
+      IMAGING_ALLOWED_ORIGINS: 127.0.0.1
+      IMAGING_DEFAULT_FORMAT: png
+      IMAGING_NAMED_OPERATIONS_FILE: /tmp/test.ops

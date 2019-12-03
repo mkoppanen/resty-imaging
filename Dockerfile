@@ -5,8 +5,6 @@ ENV LIBVIPS_VERSION 8.8.3
 WORKDIR /tmp
 EXPOSE 8080
 
-ENV x x
-
 RUN apk add --no-cache --virtual build-deps \
         gcc g++ make libc-dev libtool tar gettext git gtk-doc build-base curl \
         glib-dev libpng-dev libwebp-dev libexif-dev libxml2-dev libjpeg-turbo-dev tiff-dev giflib-dev librsvg-dev poppler-dev \
