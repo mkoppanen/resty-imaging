@@ -73,7 +73,8 @@ function _M.init(config)
         default_strip         = getenv_boolean('IMAGING_DEFAULT_STRIP',        true),
         default_format        = getenv_string('IMAGING_DEFAULT_FORMAT',        "png"),
         max_concurrency       = getenv_number('IMAGING_MAX_CONCURRENCY',       24),
-        named_operations_file = getenv_string('IMAGING_NAMED_OPERATIONS_FILE', nil)
+        named_operations_file = getenv_string('IMAGING_NAMED_OPERATIONS_FILE', nil),
+        default_params        = getenv_string('IMAGING_DEFAULT_PARAMS',        '/resize/w=1024,h=1024,m=fit/format/t=webp')
     }})
 
     -- Store config
@@ -128,12 +129,16 @@ function _M.access_phase()
     local url_params = ngx.var.imaging_params
     local image_url  = ngx.var.imaging_url
 
-    if not url_params then
-        log_error('no parameters provided')
+    if not url_params or url_params == '' then
+        url_params = _M.config.default_params
+    end
+
+    if not url_params or url_params == '' then
+        log_error('missing params')
         return ngx.exit(400)
     end
 
-    if not image_url then
+    if not image_url or image_url == '' then
         log_error('missing image url')
         return ngx.exit(400)
     end
