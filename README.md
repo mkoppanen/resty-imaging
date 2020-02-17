@@ -136,6 +136,8 @@ s (double) - the sigma value for gaussian blur
 Some examples
 -------------
 
+Using remote host:
+
 ```
 http://localhost:8080/resize/w=500,h=500,m=crop|http://another.example.com/original.jpg
 ```
@@ -143,6 +145,17 @@ http://localhost:8080/resize/w=500,h=500,m=crop|http://another.example.com/origi
 ```
 http://localhost:8080/resize/w=500,h=500,m=fit/crop/w=200,h=200,g=center/format/t=png|http://another.example.com/original.jpg
 ```
+
+Using nginx-static.conf (service from local storage):
+
+```
+http://localhost:8080/original.jpg?resize/w=500,h=500,m=crop
+```
+
+```
+http://localhost:8080/another-original.jpg?resize/w=500,h=500,m=fit/crop/w=200,h=200,g=center/format/t=png
+```
+
 
 ## Fixed source server
 
