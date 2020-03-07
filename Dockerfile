@@ -1,16 +1,18 @@
 FROM openresty/openresty:alpine
 
-ENV LIBVIPS_VERSION 8.8.3
+ENV LIBVIPS_VERSION 8.9.1
 
 WORKDIR /tmp
 EXPOSE 8080
 
 RUN apk add --no-cache --virtual build-deps \
         gcc g++ make libc-dev libtool tar gettext git gtk-doc build-base curl \
-        glib-dev libpng-dev libwebp-dev libexif-dev libxml2-dev libjpeg-turbo-dev tiff-dev giflib-dev librsvg-dev poppler-dev \
+        glib-dev libpng-dev libwebp-dev libexif-dev libxml2-dev libjpeg-turbo-dev \
+        tiff-dev giflib-dev librsvg-dev poppler-dev perl \
     && \
     apk add --no-cache \
-        glib libpng libwebp libexif libxml2 libjpeg-turbo tiff giflib librsvg ca-certificates libstdc++ libc6-compat poppler poppler-glib \
+        glib libpng libwebp libexif libxml2 libjpeg-turbo tiff \
+        giflib librsvg ca-certificates libstdc++ libc6-compat poppler poppler-glib \
         fontconfig \
         font-bh-100dpi \
         font-sun-misc \
@@ -51,10 +53,10 @@ RUN apk add --no-cache --virtual build-deps \
         font-cursor-misc \
     && \
     apk add --no-cache \
-        libimagequant --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing \
+        libimagequant --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community \
     && \
     apk add --no-cache --virtual build-deps2 \
-        libimagequant-dev --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing
+        libimagequant-dev --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 
 
 RUN curl -L https://github.com/libvips/libvips/releases/download/v${LIBVIPS_VERSION}/vips-${LIBVIPS_VERSION}.tar.gz | tar xz \

@@ -397,6 +397,8 @@ extern "C" {
 
     bool imaging_ginit(const char *name, int concurrency) {
         vips_concurrency_set(concurrency);
+        vips_leak_set(TRUE);
+
         bool rc = VIPS_INIT(name) == 0;
 
         if (rc) {
@@ -515,10 +517,12 @@ extern "C" {
 
     void Imaging_gc(Imaging *img) {
         delete img;
+        std::cout << "releasing image container" << std::endl;
     }
 
     void Imaging_gc_buffer(void *buf) {
         g_free(buf);
+        std::cout << "releasing image buffer" << std::endl;
     }
 };
 

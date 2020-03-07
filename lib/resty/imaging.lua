@@ -16,6 +16,7 @@ local ngx_update_time = ngx.update_time
 local get_time = os.clock
 local table_concat = table.concat
 
+
 local log_error = util.log_error
 local log_warn  = util.log_warn
 local log_info  = util.log_info
@@ -74,7 +75,8 @@ function _M.init(config)
         default_format        = getenv_string('IMAGING_DEFAULT_FORMAT',        "png"),
         max_concurrency       = getenv_number('IMAGING_MAX_CONCURRENCY',       24),
         named_operations_file = getenv_string('IMAGING_NAMED_OPERATIONS_FILE', nil),
-        default_params        = getenv_string('IMAGING_DEFAULT_PARAMS',        '/resize/w=1024,h=1024,m=fit/format/t=webp')
+        default_params        = getenv_string('IMAGING_DEFAULT_PARAMS',        '/resize/w=1024,h=1024,m=fit'),
+        send_etag             = getenv_boolean('IMAGING_SEND_ETAG',            true)
     }})
 
     -- Store config
@@ -204,7 +206,7 @@ function _M.request_handler()
     stats.log_fetch_time(start_processing - start_fetch)
     stats.log_operating_time(end_time - start_processing)
 
-    ngx.header["Content-Type"] = 'image/' .. format
+    ngx.header["content-type"] = 'image/' .. format
     ngx.say(image)
 
 end
