@@ -64,6 +64,8 @@ function _M.init(config)
         config = {}
     end
 
+    log_info("openresty init")
+
     setmetatable(config, {__index={
         shm_name              = "imaging",
         allowed_origins       = getenv_table('IMAGING_ALLOWED_ORIGINS',        {}),
@@ -75,8 +77,7 @@ function _M.init(config)
         default_format        = getenv_string('IMAGING_DEFAULT_FORMAT',        "png"),
         max_concurrency       = getenv_number('IMAGING_MAX_CONCURRENCY',       24),
         named_operations_file = getenv_string('IMAGING_NAMED_OPERATIONS_FILE', nil),
-        default_params        = getenv_string('IMAGING_DEFAULT_PARAMS',        '/resize/w=1024,h=1024,m=fit'),
-        send_etag             = getenv_boolean('IMAGING_SEND_ETAG',            true)
+        default_params        = getenv_string('IMAGING_DEFAULT_PARAMS',        '/resize/w=1024,h=1024,m=fit')
     }})
 
     -- Store config
@@ -128,6 +129,8 @@ end
 
 function _M.access_phase()
 
+		log_info("openresty access_phase")
+
     local url_params = ngx.var.imaging_params
     local image_url  = ngx.var.imaging_url
 
@@ -178,6 +181,8 @@ end
 
 function _M.request_handler()
 
+	  log_info("openresty request_handler")
+
     local image_url = ngx_ctx.imaging.image_url
     local manifest = ngx_ctx.imaging.manifest
 
@@ -205,6 +210,8 @@ function _M.request_handler()
 
     stats.log_fetch_time(start_processing - start_fetch)
     stats.log_operating_time(end_time - start_processing)
+
+    log_info("openresty outputting image")
 
     ngx.header["content-type"] = 'image/' .. format
     ngx.say(image)
