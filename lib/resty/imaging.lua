@@ -129,8 +129,6 @@ end
 
 function _M.access_phase()
 
-		log_info("openresty access_phase")
-
     local url_params = ngx.var.imaging_params
     local image_url  = ngx.var.imaging_url
 
@@ -181,8 +179,6 @@ end
 
 function _M.request_handler()
 
-	  log_info("openresty request_handler")
-
     local image_url = ngx_ctx.imaging.image_url
     local manifest = ngx_ctx.imaging.manifest
 
@@ -210,8 +206,6 @@ function _M.request_handler()
 
     stats.log_fetch_time(start_processing - start_fetch)
     stats.log_operating_time(end_time - start_processing)
-
-    log_info("openresty outputting image")
 
     ngx.header["content-type"] = 'image/' .. format
     ngx.say(image)

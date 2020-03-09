@@ -353,9 +353,12 @@ void *Imaging::to_buffer(const std::string& format_in, int quality, bool strip, 
     VOption *options = (
         VImage::option()
             ->set("strip",      strip)
-            ->set("interlace",  this->interlace)
             ->set("background", to_vectorv(3, this->r, this->g, this->b))
     );
+
+    if (format_in != "webp") {
+			options->set("interlace",  this->interlace);
+    }
 
     if (format_in.at(0) != '.') {
     	format.append(".");
@@ -395,9 +398,11 @@ extern "C" {
     static
         size_t s_num_formats = 0;
 
-    bool imaging_ginit(const char *name, int concurrency) {
-        vips_concurrency_set(concurrency);
+    bool imaging_ginit(const char *name) {
+
         bool rc = VIPS_INIT(name) == 0;
+
+        vips_cache_set_max(1024 * 1024 * 100);
 
         if (rc) {
             std::list<const char *> formats = Imaging::get_formats();

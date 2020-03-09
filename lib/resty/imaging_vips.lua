@@ -32,7 +32,7 @@ typedef enum {
 
 typedef struct Imaging Imaging;
 
-bool imaging_ginit(const char *name, int concurrency);
+bool imaging_ginit(const char *name);
 
 const char **imaging_get_formats(size_t *num_formats);
 
@@ -164,7 +164,7 @@ local _M = {
 }
 
 function _M.init(opts)
-    assert (Imaging.init('resty-imaging', opts.max_concurrency or 8) == true)
+    assert (Imaging.init('resty-imaging') == true)
 
     assert(opts.default_format)
     assert(opts.default_quality)
