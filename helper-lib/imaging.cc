@@ -12,6 +12,9 @@
 
 using namespace vips;
 
+#define WEBP_ICON_QUALITY_WIDTH  256
+#define WEBP_ICON_QUALITY_HEIGHT 256
+
 #define ROUND_MASK "<svg><rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" rx=\"%d\" ry=\"%d\"/></svg>"
 
 
@@ -352,16 +355,27 @@ void *Imaging::to_buffer(const std::string& format_in, int quality, bool strip, 
 
     VOption *options = (
         VImage::option()
-            ->set("strip",      strip)
             ->set("background", to_vectorv(3, this->r, this->g, this->b))
     );
 
-    if (format_in != "webp") {
-			options->set("interlace",  this->interlace);
+    if (format_in == "jpg" || format_in == "jpeg" || format_in == "png") {
+      options->set("strip", strip)
+             ->set("interlace", this->interlace);
+    }
+
+    if (format_in == "webp") {
+      options->set("min_size", strip);
+
+      if (this->image.width() < WEBP_ICON_QUALITY_WIDTH && this->image.height() < WEBP_ICON_QUALITY_HEIGHT) {
+        options->set("preset", VIPS_FOREIGN_WEBP_PRESET_ICON);
+      }
+      else {
+        options->set("preset", VIPS_FOREIGN_WEBP_PRESET_PHOTO);
+      }
     }
 
     if (format_in.at(0) != '.') {
-    	format.append(".");
+      format.append(".");
     }
     format.append(format_in);
 
@@ -369,11 +383,11 @@ void *Imaging::to_buffer(const std::string& format_in, int quality, bool strip, 
     options->set("Q", quality);
 
     if (strip) {
-    	if (format == ".png") {
-    		options->set("palette", true);
-    		options->set("colours", 256);
-    		options->set("dither", 1.0);
-    	}
+      if (format == ".png") {
+        options->set("palette", true);
+        options->set("colours", 256);
+        options->set("dither",  1.0);
+      }
     }
 
     this->image.write_to_buffer(
@@ -401,7 +415,6 @@ extern "C" {
     bool imaging_ginit(const char *name) {
 
         bool rc = VIPS_INIT(name) == 0;
-
         vips_cache_set_max(1024 * 1024 * 100);
 
         if (rc) {
